@@ -7,34 +7,35 @@ container.dropHandler = dropHandlers.reactDropHandler().handler;
 container.wrapChild = false;
 
 interface ContainerProps extends ContainerOptions {
-	render?: (rootRef: React.RefObject<any>) => React.ReactElement;
-	style?: CSSProperties;
+  render?: (rootRef: React.RefObject<any>) => React.ReactElement;
+  style?: CSSProperties;
 }
 
 class Container extends Component<ContainerProps> {
-	public static propTypes = {
-		behaviour: PropTypes.oneOf(['move', 'copy', 'drop-zone', 'contain']),
-		groupName: PropTypes.string,
-		orientation: PropTypes.oneOf(['horizontal', 'vertical']),
-		style: PropTypes.object,
-		dragHandleSelector: PropTypes.string,
-		nonDragAreaSelector: PropTypes.string,
-		dragBeginDelay: PropTypes.number,
-		animationDuration: PropTypes.number,
-		autoScrollEnabled: PropTypes.bool,
-		lockAxis: PropTypes.string,
-		dragClass: PropTypes.string,
-		dropClass: PropTypes.string,
-		onDragStart: PropTypes.func,
-		onDragEnd: PropTypes.func,
-		onDrop: PropTypes.func,
-		getChildPayload: PropTypes.func,
-		shouldAnimateDrop: PropTypes.func,
-		shouldAcceptDrop: PropTypes.func,
-		onDragEnter: PropTypes.func,
-		onDragLeave: PropTypes.func,
-		render: PropTypes.func,
-		getGhostParent: PropTypes.func,
+  // 默认属性
+  public static propTypes = {
+    behaviour: PropTypes.oneOf(['move', 'copy', 'drop-zone', 'contain']),
+    groupName: PropTypes.string,
+    orientation: PropTypes.oneOf(['horizontal', 'vertical']),
+    style: PropTypes.object,
+    dragHandleSelector: PropTypes.string,
+    nonDragAreaSelector: PropTypes.string,
+    dragBeginDelay: PropTypes.number,
+    animationDuration: PropTypes.number,
+    autoScrollEnabled: PropTypes.bool,
+    lockAxis: PropTypes.string,
+    dragClass: PropTypes.string,
+    dropClass: PropTypes.string,
+    onDragStart: PropTypes.func,
+    onDragEnd: PropTypes.func,
+    onDrop: PropTypes.func,
+    getChildPayload: PropTypes.func,
+    shouldAnimateDrop: PropTypes.func,
+    shouldAcceptDrop: PropTypes.func,
+    onDragEnter: PropTypes.func,
+    onDragLeave: PropTypes.func,
+    render: PropTypes.func,
+    getGhostParent: PropTypes.func,
     removeOnDropOut: PropTypes.bool,
     dropPlaceholder: PropTypes.oneOfType([
       PropTypes.shape({
@@ -44,38 +45,42 @@ class Container extends Component<ContainerProps> {
       }),
       PropTypes.bool,
     ]),
-	};
+  };
 
-	public static defaultProps = {
-		behaviour: 'move',
-		orientation: 'vertical',
-	};
+  public static defaultProps = {
+    behaviour: 'move',
+    orientation: 'vertical',
+  };
 
-	prevContainer: null;
-	container: SmoothDnD = null!;
-	containerRef: React.RefObject<any> = React.createRef();
+  prevContainer: null;
+  container: SmoothDnD = null!;
+  containerRef: React.RefObject<any> = React.createRef();
+
   constructor(props: ContainerProps) {
     super(props);
-		this.getContainerOptions = this.getContainerOptions.bind(this);
+
+    this.prevContainer = null;
+
+    this.getContainerOptions = this.getContainerOptions.bind(this);
     this.getContainer = this.getContainer.bind(this);
     this.isObjectTypePropsChanged = this.isObjectTypePropsChanged.bind(this);
-    this.prevContainer = null;
   }
 
   componentDidMount() {
+    // 记录 container Dom 元素
     this.prevContainer = this.getContainer();
-    this.container = container(this.getContainer(), this.getContainerOptions());
-  }
 
-  componentWillUnmount() {
-    this.container.dispose();
-    this.container = null!;
+    // 记录 smooth-dnd 渲染之后的 Dom
+    this.container = container(this.getContainer(), this.getContainerOptions());
   }
 
   componentDidUpdate(prevProps: ContainerProps) {
     if (this.getContainer()) {
+      // 更新数据
       if (this.prevContainer && this.prevContainer !== this.getContainer()) {
         this.container.dispose();
+
+        // 冲渲染区域
         this.container = container(this.getContainer(), this.getContainerOptions());
         this.prevContainer = this.getContainer();
         return;
@@ -87,6 +92,14 @@ class Container extends Component<ContainerProps> {
     }
   }
 
+
+  componentWillUnmount() {
+    this.container.dispose();
+    this.container = null!;
+  }
+
+
+  // 判断属性是否发生改变，不包括 函数
   isObjectTypePropsChanged(prevProps: ContainerProps) {
     const { render, children, style, ...containerOptions } = this.props;
 
@@ -104,38 +117,57 @@ class Container extends Component<ContainerProps> {
     return false;
   }
 
-  render() {
-    if (this.props.render) {
-			return this.props.render(this.containerRef);
-    } else {
-      return (
-        <div style={this.props.style} ref={this.containerRef}>
-          {this.props.children}
-        </div>
-      );
-    }
-	}
-	
+
+  // 获取 container Dom 元素
   getContainer() {
-		return this.containerRef.current;
-	}
-
-  getContainerOptions(): ContainerOptions {
-    return Object.keys(this.props).reduce((result: ContainerOptions, key: string) => {
-      const optionName = key as keyof ContainerOptions;
-      const prop = this.props[optionName];
-
-      if (typeof prop === 'function') {
-        result[optionName] = (...params: any[]) => {
-          return (this.props[optionName] as Function)(...params);
-        }
-      } else {
-        result[optionName] = prop;
-      }
-
-      return result;
-    },{}) as ContainerOptions;
+    return this.containerRef.current;
   }
+
+  // 复制 this.props
+  getContainerOptions(): ContainerOptions {
+    return Object.keys(this.props)
+      .reduce((result: ContainerOptions, key: string) => {
+        /*
+        * keyof ContainerOptions用于火毒类型的所有键，其返回类型是联合类型
+        * interface Person {
+  name: string;
+  age: number;
+  location: string;
+}
+
+type K1 = keyof Person; // "name" | "age" | "location"
+        * */
+        const optionName = key as keyof ContainerOptions; // 类型定义：表示 key 是 keyof ContainerOptions 类型
+        const prop = this.props[optionName];
+
+        if (typeof prop === 'function') {
+          // 拷贝这个函数
+          result[optionName] = (...params: any[]) => {
+            return (this.props[optionName] as Function)(...params);
+          }
+        } else {
+          result[optionName] = prop;
+        }
+
+        return result;
+      },{}) as ContainerOptions;
+  }
+
+  render() {
+    const { render, style, children } = this.props
+
+    if (render) {
+      // 渲染Dom 节点
+      return render(this.containerRef);
+    }
+
+    return (
+      <div style={style} ref={this.containerRef}>
+        {children}
+      </div>
+    )
+  }
+
 }
 
 export default Container;

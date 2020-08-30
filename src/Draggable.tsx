@@ -1,9 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { constants } from 'smooth-dnd';
-const {
-	wrapperClass
-} = constants;
+const { wrapperClass } = constants;
 
 export interface DraggableProps {
 	render?: () => React.ReactElement;
@@ -17,13 +15,18 @@ class Draggable extends Component<DraggableProps> {
 	}
 
 	render() {
-		if (this.props.render) {
-			return React.cloneElement(this.props.render(), { className: wrapperClass });
+		const { render, className } = this.props
+		// 自定义的render方法
+		if (render) {
+			return React.cloneElement(render(), { className: wrapperClass });
 		}
-		
-		const clsName = `${this.props.className ? (this.props.className + ' ') : ''}`
+
+		const clsName = `${className ? (className + ' ') : ''}`
 		return (
-			<div {...this.props} className={`${clsName}${wrapperClass}`} >
+			<div
+				{...this.props}
+				className={`${clsName}${wrapperClass}`}
+			>
 				{this.props.children}
 			</div>
 		);
